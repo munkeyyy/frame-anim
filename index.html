@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html.lenis,
+      html.lenis body {
+        height: auto;
+      }
+
+      .lenis.lenis-smooth {
+        scroll-behavior: auto !important;
+      }
+
+      .lenis.lenis-smooth [data-lenis-prevent] {
+        overscroll-behavior: contain;
+      }
+
+      .lenis.lenis-stopped {
+        overflow: hidden;
+      }
+
+      .lenis.lenis-smooth iframe {
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="w-full bg-zinc-900">
+      <div class="parent relative top-0 left-0 w-full h-[700vh]">
+        <div class="w-full canv h-screen sticky top-0 left-0">
+          <canvas id="frame" class="w-full h-screen"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+    <script>
+      // Register the ScrollTrigger plugin
+      gsap.registerPlugin(ScrollTrigger);
+
+      const lenis = new Lenis();
+
+      lenis.on("scroll", (e) => {
+        console.log(e);
+      });
+
+      lenis.on("scroll", ScrollTrigger.update);
+
+      gsap.ticker.add((time) => {
+        lenis.raf(time * 1000);
+      });
+
+      gsap.ticker.lagSmoothing(0);
+
+      const canvas = document.querySelector("canvas");
+      const context = canvas.getContext("2d");
+      const frames = {
+        currentFrame: 0,
+        maxFrames: 382,
+      };
+      let images = [];
+      let imageLoaded = 0;
+
+      function preLoad() {
+        for (let i = 1; i <= frames.maxFrames; i++) {
+          let imageUrl = `./hui/frame_${i.toString().padStart(4, "0")}.jpeg`;
+          const img = new Image();
+          img.src = imageUrl;
+          img.onload = () => {
+            imageLoaded++;
+            if (imageLoaded === frames.maxFrames) {
+              loadImages(frames.currentFrame);
+              startAnimation(); // Trigger animation after images are loaded
+            }
+          };
+          images.push(img);
+        }
+      }
+
+      function loadImages(curr) {
+        if (curr >= 0 && curr <= frames.maxFrames) {
+          const img = images[curr];
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          const scaleX = canvas.width / img.width;
+          const scaleY = canvas.height / img.height;
+          const scale = Math.max(scaleX, scaleY);
+
+          const newWidth = img.width * scale;
+          const newHeight = img.height * scale;
+
+          const offsetX = (canvas.width - newWidth) / 2;
+          const offsetY = (canvas.height - newHeight) / 2;
+
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = "high";
+          context.drawImage(img, offsetX, offsetY, newWidth, newHeight);
+          frames.currentFrame = curr;
+        }
+      }
+
+      function startAnimation() {
+        var tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: ".parent",
+            scrub: true,
+            start: "top top",
+            // end: "bottom bottom",
+          },
+        });
+
+        tl.to(frames, {
+          currentFrame: frames.maxFrames,
+          onUpdate: function () {
+            loadImages(Math.floor(frames.currentFrame));
+          },
+        });
+      }
+
+      window.addEventListener("resize", () => {
+        loadImages(frames.currentFrame);
+      });
+
+      preLoad();
+    </script>
+  </body>
+</html>
